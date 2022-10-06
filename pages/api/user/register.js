@@ -8,6 +8,12 @@ export default function userRegisterRoute(req, res) {
 
     //check authentication
     const user = checkToken(req);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({
+        ok: false,
+        message: "You do not have permission to create account",
+      });
+    }
     //return res.status(403).json({ok: false,message: "You do not have permission to create account",});
 
     //validate body
@@ -24,12 +30,25 @@ export default function userRegisterRoute(req, res) {
 
     //check if username is already in database
     const users = readUsersDB();
+    const foundUser = users.find((user) => user.username === username);
+    if (foundUser)
+      return res
+        .status(400)
+        .json({ ok: false, message: "Username is already taken" });
     //return res.status(400).json({ ok: false, message: "Username is already taken" });
 
     //create new user and add in db
-
+    const newUser = {
+      username,
+      password: bcrypt.hashSync(password, 12),
+      isAdmin,
+      money: isAdmin ? null : 0,
+    };
+    users.push(newUser);
     writeUsersDB(users);
-
+    return res
+      .status(200)
+      .json({ ok: true, username: newUser.username, isAdmin: newUser.isAdmin });
     //return response
   }
 }
